@@ -10,8 +10,8 @@ class HDF5DatasetWriter:
     def __init__(self, dimensions, output_Path, data_Key="images", bufferSize=1000):
         # Check to see if the output path exists, and if so, raise an exception
         if os.path.exists(output_Path):
-            raise ValueError("The supplied 'output_Path' already exits"
-                            "and cannot be overwritten."
+            raise ValueError("The supplied 'output_Path' already exits "
+                            "and cannot be overwritten. "
                              "Manually delete the file before continuing.", output_Path)
         
         # Open the HDF5 database for writing and create two datasets:
