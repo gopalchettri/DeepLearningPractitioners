@@ -1,54 +1,64 @@
-# The transfer learning via feature extraction technique we’ll be using in this script to increase the accuracy 
+# Extract features from an arbitrary image dataset
+# (provided the input dataset follows a specific directory structure)
 
-# to run - python extract_features.py --dataset ../dataset/kaggle_dogs_vs_cats/train --output ../dataset/kaggle_dogs_vs_cats/hdf5/features.hdf5
 
-# import the necessary packages
-from tensorflow.keras.applications import ResNet50
-from keras.applications import imagenet_utils
+# python extract_features.py --dataset ../CorrectingImageOrientation/indoor_cvpr/roated_images --output ../CorrectingImageOrientation/indoor_cvpr/hdf5/orientation_features.hdf5
+# python extract_features.py --dataset ../CorrectingImageOrientation/indoor_cvpr/roated_images --output ../CorrectingImageOrientation/indoor_cvpr/hdf5/orientation_features.hdf5
+
+
+# import required packages
+import tensorflow as tf
+from tensorflow.keras.applications import VGG16
+from tensorflow.keras.applications import imagenet_utils
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.preprocessing.image import load_img
 from sklearn.preprocessing import LabelEncoder
-from utilities.io import HDF5DatasetWriter
+from utilities.io.hdf5datasetwriter import HDF5DatasetWriter
 from imutils import paths
 import numpy as np
 import progressbar
-import random
 import argparse
+import random
 import os
 
-# construct the argument parse and parse the arguments
+dataset_path = "../CorrectingImageOrientation/indoor_cvpr/rotated_images"
+root_image_path = "../CorrectingImageOrientation/indoor_cvpr/rotated_images/"
+
+# Construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-d", "--dataset", required=True, help="path to the input dataset")
-ap.add_argument("-o", "--output", required=True, help="path to the output HDF5 file")
-ap.add_argument("-b", "--batch_size", type=int, default=16, help="batch size of images to be passed through network")
+ap.add_argument("-d", "--dataset", required=False, default=dataset_path, help="path to input dataset")
+ap.add_argument("-o", "--output", required=True, help="path to output HDF5 file")
+ap.add_argument("-b", "--batch_size", type=int, default=10,help="batch size of images to be passed through network")
 ap.add_argument("-s", "--buffer_size", type=int, default=1000, help="size of feature extraction buffer")
 args = vars(ap.parse_args())
-
-# store the batch size in a convenience variable
+# Store the file location in a convenience variable
+dataset = args["dataset"]
+print("[INFO] Dataset path : ", dataset)
+# Store the batch size in a convenience variable
 batch_size = args["batch_size"]
 
 # grab the list of images that we'll be describing,
 # then randomly shuffle them to allow for easy training and testing splits via
 # array slicing during training time
-print("[INFO] loading images ...")
-image_path = list(paths.list_images(args["dataset"]))
-# image_path = list(paths.list_images("dataset"))
+print("[INFO] loading imaegs ...")
+# image_path = list(paths.list_images(args["dataset"]))
+image_path = list(paths.list_images(dataset))
 random.shuffle(image_path)
 
-# print("Image Path : ", image_path)
+print("Image Path : ", image_path)
 # Extract the class labels from the image paths then encode the labels
-labels = [p.split(os.path.sep)[-1].split(".")[0] for p in image_path]
-# print('Labels : ', labels)
+labels = [p.split(os.path.sep)[-2] for p in image_path]
+print('Labels : ', labels)
 label_encoder = LabelEncoder()
 labels = label_encoder.fit_transform(labels)
 
-# load the ResNet50 network
+# load the VGG16 network
 print("[INFO] loading network ...")
-# we load the pre-trained ResNet50 network from disk; however, the parameter include_top=False – supplying this value indicates that the final fullyconnected layers should not be included in the architecture
-model = ResNet50(weights="imagenet", include_top=False)
+# we load the pre-trained VGG16 network from disk; however, the parameter include_top=False – supplying this value indicates that the final fullyconnected layers should not be included in the architecture
+model = VGG16(weights="imagenet", include_top=False)
 
 # initialize the HDF5 dataset writer, then store the class label names in the dataset
-dataset = HDF5DatasetWriter(dimensions =(len(image_path), 2048 * 7 * 7), 
+dataset = HDF5DatasetWriter(dimensions =(len(image_path), 512 * 7 * 7), 
                            output_Path = args["output"], 
                            data_Key="features", 
                            bufferSize=args["buffer_size"])
@@ -98,11 +108,11 @@ for i in np.arange(0, len(image_path), batch_size):
     # our actual features
     batch_Images = np.vstack(batch_Images)
     features = model.predict(batch_Images, batch_size=batch_size)
-    # print("[INFO] features : ", features)
+
     # Reshape the features so that each image is represented by 
     # a flattened feature vector of the 'MaxPooling2D' output
-    features = features.reshape((features.shape[0],  7 * 7 * 2048))
-    
+    features = features.reshape((features.shape[0], 512 * 7 * 7))
+
     # Add the features and labels to our HDF5 dataset
     dataset.add(features, batch_Labels)
     pBar.update(i)
