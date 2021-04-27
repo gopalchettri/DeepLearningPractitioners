@@ -28,7 +28,7 @@ db.close()
 # grabthe paths to the testing images and randomly sample them
 print("[INFO] sampling images....")
 imagePaths = list(paths.list_images(args["dataset"]))
-imagePaths = np.random.choice(imagePaths, size=(6, ), replace=False)
+imagePaths = np.random.choice(imagePaths, size=(9, ), replace=False)
 
 # load the VGG16 network
 print("[INFO] loading network ...")

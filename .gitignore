@@ -3,10 +3,12 @@
 *.jpeg
 *.png
 *.gif
+*.tif
 
 # ignoring .hdf5 files
 *.hdf5
 *.zip
+*.rec
 
 # Numerous always-ignore extensions
 *.pyc
